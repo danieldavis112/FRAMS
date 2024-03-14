@@ -1,0 +1,160 @@
+{% extends 'base.html' %} {% block pageContent %}
+{% load crispy_forms_tags %}
+<div class="col-lg-12 col-md-12 col-sm-12 col-xs-12">
+    <div class="card card-default rounded-0 shadow ">
+        <div class="card-header">
+            <div class="d-flex w-100 align-items-center justify-content-between">
+                <h4 class="card-title fw-bold">Class Attendance</h4>
+                <div class="tools">
+                    <button type="button" class="btn btn-defualt border rounded-0 bg-gradient btn-sm" id='print_attendance_report'><i class="fa fa-print"></i> Print Attendance Report</button>
+                </div>
+            </div>
+        </div>
+        <div class="card-body">
+            <form id="attendance-form">
+                {% csrf_token %}
+                <input type="hidden" name="classIns" value="{{ class.pk }}">
+                <div class="container-fluid">
+                    <fieldset>
+                        <legend>Class Details</legend>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="d-flex w-100">
+                                    <div class="col-auto pe-2 text-muted">Department:</div>
+                                    <div class="col-auto flex-shrink-1 flex-grow-1">
+                                        <p class="m-0 fw-bold">{{ class.assigned_faculty.department }}</p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="d-flex w-100">
+                                    <div class="col-auto pe-2 text-muted">School Year:</div>
+                                    <div class="col-auto flex-shrink-1 flex-grow-1">
+                                        <p class="m-0 fw-bold">{{ class.school_year }}</p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="d-flex w-100">
+                                    <div class="col-auto pe-2 text-muted">Level:</div>
+                                    <div class="col-auto flex-shrink-1 flex-grow-1">
+                                        <p class="m-0 fw-bold">{{ class.level }}</p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="d-flex w-100">
+                                    <div class="col-auto pe-2 text-muted">Name:</div>
+                                    <div class="col-auto flex-shrink-1 flex-grow-1">
+                                        <p class="m-0 fw-bold">{{ class.name }}</p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="d-flex w-100">
+                                    <div class="col-auto pe-2 text-muted">Faculty:</div>
+                                    <div class="col-auto flex-shrink-1 flex-grow-1">
+                                        <p class="m-0 fw-bold">{{ class.assigned_faculty.user.first_name }} {{ class.assigned_faculty.user.last_name }}</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </fieldset>
+                    
+                    <div class="card-body">
+                        <form method="POST" >
+                             {% csrf_token %}
+                             <fieldset class="form-group">
+                               {{form| crispy}}
+                             </fieldset>
+                       
+                             <div class="form-group">
+                                <button class="btn btn-outline-info" type="submit"> Submit</button>
+                              </div>
+                           </form>
+                         </div>
+                       </div>
+                        
+                   
+                    <fieldset>
+                        <legend>Attendance List</legend>
+                        <table class="table tables-bordered" id="student-list">
+                            <colgroup>
+                                <col width="5%">
+                                <col width="15%">
+                                <col width="25%">
+                                <col width="15%">
+                                <col width="15%">
+                                <col width="15%">
+                            </colgroup>
+                            <thead>
+                                <tr>
+                                    <th class="text-ceter">#</th>
+                                    <th class="text-ceter">Student Code</th>
+                                    <th class="text-ceter">Student Name</th>
+                                    <th class="text-ceter">Morning</th>
+                                    <th class="text-ceter">Afternoon</th>
+                                    <th class="text-ceter">Total Present</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for att in attendance %}
+                                <tr class="">
+                                    <td class="text-center">{{ forloop.counter }}</td>
+                                    <td>{{ att.student.student_code }}</td>
+                                    <td>{{ att.student.first_name }} {{att.student.last_name }}</td>
+                                    <td>{% if att.firstpresent %} present  {% else %} absent {% endif %}</td>
+                                    <td>{% if att.secondpresent %} present  {% else %} absent {% endif %}</td>
+                                    <td>{% if att.total > 0.5 %} fullday  {% else %} halfday {% endif %}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                        <div class="clear-fix py-3"></div>
+                    </fieldset>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock pageContent %} {% block ScriptBlock %}
+<script>
+     var studentTbl;
+    $(function() {
+        $('table td, table th').addClass('px-2 py-1')
+        $('input[name="attendance_date"]').change(function() {
+            location.href = "{% url 'attendance-page' class.pk %}/" + $(this).val()
+        })
+        studentTbl = $('#student-list').clone()
+        studentTbl.addClass('table-bordered table-striped')
+        studentTbl.find('th, td').addClass('px-2 py-1 align-middle')
+        studentTbl.find('th').addClass('text-center')
+        studentTbl.find('colgroup').html('<col width="5%"><col width="25%"><col width="25%"><col width="15%"><col width="15%"><col width="15%">')
+        studentTbl.find('th:nth-last-child(1), td:nth-last-child(1)')
+        $('#print_attendance_report').click(function(){
+            var head  = $('head').clone()
+            var el = $('<div>').clone()
+            var details = $('#class-details').clone()
+            head.find('title').text('Class Attendance Report - Print View')
+            head.append('<style>'+
+                        '@media print{ .row{ margin:unset !important } .col-md-6{ width:50% !important } }'+
+                        '</style>')
+            el.append(head)
+            el.append('<div class="lh-1"><h2 class="text-center fw-bolder">Class Attendance Report</h2></div><hr>')
+            el.append(details)
+            el.append(studentTbl)
+            start_loader()
+            var nw = window.open('','_blank','width=1000,height=900')
+                     nw.document.write(el.html())
+                     nw.document.close()
+                setTimeout(()=>{
+                    nw.print()
+                    setTimeout(()=>{
+                        nw.close()
+                        end_loader()
+                    },300)
+                },500)
+        })
+    })
+        </script>
+        {% endblock ScriptBlock %}
